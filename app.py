@@ -185,6 +185,48 @@ BASE_LAYOUT = """
             background: {{ ui.accent }}; color: {{ ui.primary }};
             padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: inline-block; margin-right: 5px;
         }
+
+        /* --- CSS HOẠT HỌA CHO NÚT LIKE BÔNG HOA --- */
+        .like-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            user-select: none;
+        }
+        .flower-like-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            outline: none;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+        .flower-like-btn:hover {
+            transform: scale(1.15);
+        }
+        .flower-like-btn.bloomed {
+            animation: bloomAnimation 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes bloomAnimation {
+            0% { transform: scale(1); }
+            30% { transform: scale(0.7) rotate(-15deg); }
+            70% { transform: scale(1.5) rotate(15deg); }
+            100% { transform: scale(1.25) rotate(0deg); }
+        }
+        .like-count {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: {{ ui.text_muted }};
+            transition: color 0.3s ease;
+        }
+        .like-container.active .like-count {
+            color: #d53f8c;
+        }
     </style>
 </head>
 <body>
@@ -400,6 +442,11 @@ def read_story(story_id):
         <p style="color: {{ ui.text_muted }}; margin: 5px 0;"><strong>Tác giả:</strong> {{ story.author_name }}</p>
         <p style="color: {{ ui.text_muted }}; margin: 5px 0;"><strong>Thời lượng:</strong> {{ story.chapters }} Chương</p>
         
+        <div class="like-container" id="likeArea">
+            <button class="flower-like-btn" id="flowerBtn" onclick="handleLike()">🌸</button>
+            <span class="like-count" id="likeCount">12</span>
+        </div>
+        
         <hr style="border: 0; border-top: 1px solid {{ ui.border }}; margin: 30px 0;">
         
         <h3 style="text-align: left; color: {{ ui.primary }};">📝 TÓM TẮT NỘI DUNG:</h3>
@@ -419,6 +466,30 @@ def read_story(story_id):
         
         <a href="/" class="btn" style="margin-top: 40px;">➔ Trở về Sảnh Chung</a>
     </div>
+
+    <script>
+    let isLiked = false;
+    function handleLike() {
+        const flowerBtn = document.getElementById('flowerBtn');
+        const likeCountSpan = document.getElementById('likeCount');
+        const likeArea = document.getElementById('likeArea');
+        let currentLikes = parseInt(likeCountSpan.innerText);
+
+        if (!isLiked) {
+            likeCountSpan.innerText = currentLikes + 1;
+            flowerBtn.classList.add('bloomed');
+            likeArea.classList.add('active');
+            flowerBtn.innerText = "🌺"; // Đổi sang biểu tượng hoa nở bung
+            isLiked = true;
+        } else {
+            likeCountSpan.innerText = currentLikes - 1;
+            flowerBtn.classList.remove('bloomed');
+            likeArea.classList.remove('active');
+            flowerBtn.innerText = "🌸"; // Trở lại nụ hoa nhỏ lúc đầu
+            isLiked = false;
+        }
+    }
+    </script>
     {% endblock %}
     """
     return render_template_string(content, ui=ui, story=story)
