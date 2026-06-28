@@ -1,6 +1,7 @@
 import os
 import sqlite3
-from flask import Flask, request, redirect, url_for, session, render_template_string, flash
+from flask import Flask, request, redirect, url_for, session, render_template_string
+from jinja2 import DictLoader, ChoiceLoader
 
 app = Flask(__name__)
 app.secret_key = "after13friday_cosmic_secret_key"
@@ -119,6 +120,9 @@ BASE_LAYOUT = """
             width: 100%; padding: 12px; margin: 10px 0 20px 0; background: rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; box-sizing: border-box;
         }
+        table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { color: #45f3ff; }
     </style>
 </head>
 <body>
@@ -148,12 +152,17 @@ BASE_LAYOUT = """
 </html>
 """
 
+# ĐĂNG KÝ HỆ THỐNG QUẢN LÝ GIAO DIỆN AN TOÀN CHO FLASK
+app.jinja_loader = ChoiceLoader([
+    app.jinja_loader,
+    DictLoader({'base': BASE_LAYOUT})
+])
+
 # 🏠 TRANG CHỦ LỆNH HIỂN THỊ
 @app.route('/')
 def home():
     ui = load_interface_settings()
     db = get_db()
-    # Cập nhật lại số sao thực tế trong session nếu đã đăng nhập
     if 'user_id' in session:
         u_data = db.execute("SELECT stars FROM users WHERE id = ?", (session['user_id'],)).fetchone()
         if u_data: session['stars'] = u_data['stars']
@@ -271,9 +280,7 @@ def dashboard():
         chapters = request.form.get('chapters')
         if title:
             db = get_db()
-            # Thêm truyện vào bảng danh sách
             db.execute("INSERT INTO stories (title, chapters, views, author_name) VALUES (?, ?, 0, ?)", (title, chapters, session['username']))
-            # Tặng 20 Sao cho Tác giả vì đã đóng góp sáng tác sáng tạo
             db.execute("UPDATE users SET stars = stars + 20 WHERE id = ?", (session['user_id'],))
             db.commit()
             return "<script>alert('Đăng truyện thành công! Chúc mừng tác giả được cộng thêm +20 Sao!'); window.location='/';</script>"
@@ -285,7 +292,7 @@ def dashboard():
         <h2 style="color: #fff; margin-top: 0;">✍️ Không Gian Sáng Tác Tác Giả</h2>
         <p style="color: #45f3ff; font-size: 0.9rem;">Mỗi lần phát hành một đầu truyện mới, hệ thống sẽ tự động thưởng cho bạn <b>+20 Sao</b>!</p>
         <form method="POST" style="margin-top: 20px;">
-            <label>Tên tác phẩm truyện (Ví dụ: Phúc Thần Ban Phước...):</label>
+            <label>Tên tác phẩm truyện:</label>
             <input type="text" name="title" required placeholder="Nhập tên truyện của bạn...">
             <label>Số lượng chương khởi đầu:</label>
             <input type="number" name="chapters" value="1" min="1" required>
@@ -303,26 +310,18 @@ def read_story(story_id):
     ui = load_interface_settings()
     db = get_db()
     
-    # Lấy thông tin truyện
     story = db.execute("SELECT * FROM stories WHERE id = ?", (story_id,)).fetchone()
     if not story: return redirect(url_for('home'))
     
-    # Kiểm tra số sao hiện có của độc giả
     user = db.execute("SELECT stars FROM users WHERE id = ?", (session['user_id'],)).fetchone()
     
-    # Nếu là Admin thì đọc miễn phí, nếu là User thường thì kiểm tra điểm sao
     if session['role'] != 'admin':
         if user['stars'] < 5:
-            return "<script>alert('Úi! Bạn không đủ Sao rồi. Hãy đăng truyện mới để kiếm thêm Sao hoặc đăng ký tài khoản khác nha!'); window.location='/';</script>"
+            return "<script>alert('Úi! Bạn không đủ Sao rồi. Hãy đăng truyện mới để kiếm thêm Sao!'); window.location='/';</script>"
         
-        # Đủ sao: Trừ độc giả 5 sao, Tăng lượt xem lên 1
         db.execute("UPDATE users SET stars = stars - 5 WHERE id = ?", (session['user_id'],))
         db.execute("UPDATE stories SET views = views + 1 WHERE id = ?", (story_id,))
-        
-        # Thưởng điểm cho fan: Độc giả đọc truyện sẽ được hệ thống tặng lại tinh tú +1 Sao (Kiếm Sao khi đọc)
         db.execute("UPDATE users SET stars = stars + 1 WHERE id = ?", (session['user_id'],))
-        
-        # Tặng điểm cho tác giả của bộ truyện đó (+2 Sao vì có fan xem)
         db.execute("UPDATE users SET stars = stars + 2 WHERE username = ?", (story['author_name'],))
         db.commit()
 
@@ -330,7 +329,7 @@ def read_story(story_id):
     {% extends "base" %}
     {% block content %}
     <div class="card" style="text-align: center; max-width: 700px; margin: 0 auto; padding: 50px 30px;">
-        <h2 style="color: var(--primary-color); margin-top:0;">📖 ĐANG ĐỌC: {{ story.title }}</h2>
+        <h2 style="color: {{ ui.primary_color }}; margin-top:0;">📖 ĐANG ĐỌC: {{ story.title }}</h2>
         <p style="color: #888;">Tác giả: {{ story.author_name }} | Thời lượng: {{ story.chapters }} Chương</p>
         <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 30px 0;">
         <div style="font-size: 1.15rem; line-height: 1.8; text-align: left; color: #fff; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px;">
@@ -355,7 +354,6 @@ def admin_dashboard():
     if request.method == 'POST':
         action = request.form.get('action')
         
-        # Thao tác 1: Khóa / Mở khóa tài khoản thành viên
         if action == 'toggle_block':
             user_id = request.form.get('user_id')
             current_status = int(request.form.get('current_status'))
@@ -364,7 +362,6 @@ def admin_dashboard():
             db.commit()
             return redirect(url_for('admin_dashboard'))
             
-        # Thao tác 2: Chỉnh sửa màu sắc giao diện theo sở thích
         elif action == 'update_ui':
             primary = request.form.get('primary_color')
             bg = request.form.get('bg_gradient')
@@ -383,7 +380,6 @@ def admin_dashboard():
     {% block content %}
     <h2 style="color: #ff4545;">👑 TỐI CAO PANEL - QUẢN TRỊ TRANG WEB</h2>
     
-    <!-- 1. KHUNG CHỈNH SỬA GIAO DIỆN WED -->
     <div class="card">
         <h3 style="color: #66fcf1; margin-top: 0;">🎨 Tùy Biến Giao Diện Vũ Trụ</h3>
         <form method="POST">
@@ -398,13 +394,12 @@ def admin_dashboard():
         </form>
     </div>
 
-    <!-- 2. QUẢN LÝ THÀNH VIÊN & KHÓA NICK -->
     <div class="card">
         <h3 style="color: #66fcf1; margin-top: 0;">👥 Danh Sách Người Dùng Hệ Thống</h3>
-        <table style="width:100%; border-collapse: collapse; text-align: left; margin-top:15px;">
+        <table>
             <thead>
-                <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #45f3ff;">
-                    <th style="padding:10px;">ID</th>
+                <tr>
+                    <th>ID</th>
                     <th>Tên Tài Khoản</th>
                     <th>Số Sao</th>
                     <th>Trạng Thái</th>
@@ -413,8 +408,8 @@ def admin_dashboard():
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <td style="padding:12px 10px;">{{ user.id }}</td>
+                <tr>
+                    <td>{{ user.id }}</td>
                     <td style="font-weight:bold; color:#fff;">{{ user.username }}</td>
                     <td style="color:#fffb00;">⭐ {{ user.stars }} Sao</td>
                     <td>
@@ -444,11 +439,6 @@ def admin_dashboard():
     {% endblock %}
     """
     return render_template_string(content, ui=ui, users=users_list)
-
-# ĐĂNG KÝ LAYOUT GỐC VÀO FLASK TEMPLATE CACHE
-@app.before_request
-def register_base_template():
-    app.jinja_env.from_string(BASE_LAYOUT).name = "base"
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
