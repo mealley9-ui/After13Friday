@@ -1,0 +1,239 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+
+        {% block title %}
+
+        AFTER 13 FRIDAY
+
+        {% endblock %}
+
+    </title>
+
+    <!-- Google Font -->
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap"
+          rel="stylesheet">
+
+    <!-- CSS -->
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css', v='1.0.0') }}">
+
+</head>
+
+<body>
+
+    <!-- Petal Effect -->
+
+    <div id="petal-container"></div>
+
+    <!-- Navbar -->
+
+    <nav class="navbar">
+
+        <div class="logo">
+
+            <a href="{{ url_for('home') }}">
+
+                AFTER 13 FRIDAY
+
+            </a>
+
+        </div>
+
+        <ul>
+
+            <li>
+
+                <a href="{{ url_for('home') }}">
+
+                    Trang chủ
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="{{ url_for('add_story') }}">
+
+                    Thêm truyện
+
+                </a>
+
+            </li>
+
+        </ul>
+
+    </nav>
+
+    <!-- Flash Message -->
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% if messages %}
+
+            <div class="flash-wrapper">
+
+                {% for category, message in messages %}
+
+                    <div class="flash {{ category }}">
+
+                        {{ message }}
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+    {% endwith %}
+
+    <!-- Main -->
+
+    <main class="container">
+
+        {% block content %}
+
+        {% endblock %}
+
+    </main>
+
+    <!-- Footer -->
+
+    <footer>
+
+        <div class="footer-content">
+
+            <h3>
+
+                AFTER 13 FRIDAY
+
+            </h3>
+
+            <p>
+
+                Anime • Romance • Fantasy
+
+            </p>
+
+            <small>
+
+                © 2026 AFTER 13 FRIDAY
+
+            </small>
+
+        </div>
+
+    </footer>
+
+    <script>
+
+        /*
+        ====================================
+                Cherry Blossom Effect
+        ====================================
+        */
+
+        function createPetal() {
+
+            const petal = document.createElement("div");
+
+            petal.classList.add("petal");
+
+            petal.innerHTML = "🌸";
+
+            petal.style.left = Math.random() * 100 + "vw";
+
+            petal.style.animationDuration =
+                (Math.random() * 5 + 5) + "s";
+
+            petal.style.fontSize =
+                (Math.random() * 15 + 15) + "px";
+
+            document
+                .getElementById("petal-container")
+                .appendChild(petal);
+
+            setTimeout(function () {
+
+                petal.remove();
+
+            }, 10000);
+
+        }
+
+        setInterval(createPetal, 500);
+
+        /*
+        ====================================
+                Flash Message
+        ====================================
+        */
+
+        setTimeout(function () {
+
+            const flash = document.querySelector(".flash-wrapper");
+
+            if (flash) {
+
+                flash.style.opacity = "0";
+
+                flash.style.transform = "translateY(-20px)";
+
+                setTimeout(function () {
+
+                    flash.remove();
+
+                }, 800);
+
+            }
+
+        }, 3000);
+
+        /*
+        ====================================
+                Like Animation
+        ====================================
+        */
+
+        function likeAnimation(button) {
+
+            button.classList.add("liked");
+
+            button.innerHTML = "❤ Đã thích";
+
+            setTimeout(function () {
+
+                button.classList.remove("liked");
+
+            }, 600);
+
+        }
+
+    </script>
+
+</body>
+
+</html>
+
+
