@@ -1,58 +1,58 @@
-from flask import Flask, render_template_string
+import os
+import sqlite3
+from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
+# Thiết kế Theme "Anime Luxury"
+THEME = {
+    "bg": "#fff0f5",
+    "card_bg": "rgba(255, 255, 255, 0.9)",
+    "primary": "#d53f8c",
+    "text": "#4a2c30",
+    "font": "'Playfair Display', serif"
+}
 
-# Giao diện Dark Glass (Kính mờ, sang trọng, không quê)
-FULL_UI = """
+BASE_LAYOUT = """
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300&display=swap" rel="stylesheet">
     <style>
-        :root { --glass: rgba(255, 255, 255, 0.05); --pink: #ff7eb3; }
-        body { 
-            margin: 0; background: #0a0a0a; color: white;
-            font-family: 'Segoe UI', sans-serif; overflow-x: hidden;
-            background: radial-gradient(circle at top right, #2a0845, #0a0a0a);
-        }
-        /* Hiệu ứng cánh hoa */
-        .petal { position: fixed; color: var(--pink); z-index: 100; animation: fall linear infinite; pointer-events: none; }
-        @keyframes fall { from { transform: translateY(-10vh); } to { transform: translateY(110vh) rotate(360deg); } }
+        body { background: {{ t.bg }}; font-family: 'Montserrat', sans-serif; color: {{ t.text }}; overflow-x: hidden; }
         
-        /* Glassmorphism Card */
-        .glass-card {
-            background: var(--glass); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
-            padding: 30px; margin: 20px; transition: 0.5s;
-        }
-        .glass-card:hover { transform: translateY(-10px); border-color: var(--pink); }
-        
-        /* Like button bung tỏa */
-        .btn-like { cursor: pointer; padding: 15px 30px; background: var(--pink); border-radius: 50px; border: none; font-weight: bold; }
-        .btn-like:active { transform: scale(0.9); }
+        /* Hiệu ứng cánh hoa rơi */
+        .petal { position: fixed; top: -10px; z-index: 1; animation: fall linear infinite; color: #ff99cc; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(360deg); } }
+
+        /* Khung nhân vật Anime trang trí */
+        .anime-char { position: fixed; bottom: 0; width: 220px; z-index: 5; opacity: 0.8; }
+        #char-left { left: 0; }
+        #char-right { right: 0; }
+
+        .card { background: {{ t.card_bg }}; border-radius: 30px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px; }
+        .like-btn { font-size: 3rem; cursor: pointer; transition: 0.3s; }
+        .like-btn:active { transform: scale(1.5); }
     </style>
 </head>
 <body>
+    <!-- Cánh hoa rơi -->
     <script>
-        setInterval(() => {
+        for(let i=0; i<20; i++){
             let p = document.createElement('div');
             p.innerHTML = '🌸'; p.className = 'petal';
             p.style.left = Math.random()*100 + 'vw';
-            p.style.animationDuration = (Math.random()*3 + 3) + 's';
+            p.style.animationDuration = (Math.random()*5 + 5) + 's';
             document.body.appendChild(p);
-            setTimeout(() => p.remove(), 5000);
-        }, 500);
+        }
     </script>
 
-    <div style="max-width: 800px; margin: auto; padding-top: 50px;">
-        <h1 style="text-align:center; font-size: 3rem; background: linear-gradient(to right, #ff7eb3, #ff758c); -webkit-background-clip: text; color: transparent;">
-            AFTER 13 FRIDAY
-        </h1>
-        
-        <div class="glass-card">
-            <h2>✨ Chào mừng Admin</h2>
-            <p>Không gian quản lý dữ liệu tối cao đã sẵn sàng.</p>
-            <button class="btn-like" onclick="alert('Đã thích! 🌸')">🌸 Thích Trang</button>
-        </div>
+    <!-- Nhân vật Anime (Dùng ảnh minh họa phong cách Nhật) -->
+    <img src="https://i.imgur.com/8Fk7L4k.png" class="anime-char" id="char-left">
+    <img src="https://i.imgur.com/wVjHkZp.png" class="anime-char" id="char-right">
+
+    <div style="max-width: 800px; margin: auto; position: relative; z-index: 10;">
+        <h1 style="text-align: center; font-family: {{ t.font }}; color: {{ t.primary }};">After 13 Friday</h1>
+        {% block content %}{% endblock %}
     </div>
 </body>
 </html>
@@ -60,7 +60,27 @@ FULL_UI = """
 
 @app.route('/')
 def home():
-    return render_template_string(FULL_UI)
+    content = """
+    {% extends "base" %}
+    {% block content %}
+    <div class="card" style="text-align: center;">
+        <h2>Chào mừng đến với không gian truyện Anime</h2>
+        <div class="like-btn" onclick="bloom()">🌸</div>
+        <p id="count">Lượt thích: 0</p>
+    </div>
+    <script>
+        let c = 0;
+        function bloom() {
+            c++;
+            document.getElementById('count').innerText = 'Lượt thích: ' + c;
+            alert('Hoa đã nở rộ vì bạn!');
+        }
+    </script>
+    {% endblock %}
+    """
+    return render_template_string(content, t=THEME)
+
+app.jinja_loader = ChoiceLoader([app.jinja_loader, DictLoader({'base': BASE_LAYOUT})])
 
 if __name__ == '__main__':
     app.run(debug=True)
