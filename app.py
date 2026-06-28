@@ -152,7 +152,6 @@ BASE_LAYOUT = """
 </html>
 """
 
-# ĐĂNG KÝ HỆ THỐNG QUẢN LÝ GIAO DIỆN AN TOÀN CHO FLASK
 app.jinja_loader = ChoiceLoader([
     app.jinja_loader,
     DictLoader({'base': BASE_LAYOUT})
@@ -172,7 +171,7 @@ def home():
     content = """
     {% extends "base" %}
     {% block content %}
-    <h2 style="color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">📚 Sảnh Truyện Vũ Trụ NovelToon</h2>
+    <h2 style="color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">📚 Sảnh Truyện Vũ Trụ After13Friday</h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px;">
         {% for story in stories %}
         <div class="card">
@@ -257,7 +256,6 @@ def login():
             <input type="password" name="password" required>
             <button type="submit" class="btn" style="width: 100%;">Đăng Nhập Khám Phá Vũ Trụ</button>
         </form>
-        <p style="text-align: center; font-size: 0.85rem; margin-top: 15px;">Mặc định Admin: tài khoản <b>admin</b> / mật khẩu <b>admin123</b></p>
     </div>
     {% endblock %}
     """
@@ -354,6 +352,7 @@ def admin_dashboard():
     if request.method == 'POST':
         action = request.form.get('action')
         
+        # Thao tác 1: Khóa / Mở khóa tài khoản thành viên
         if action == 'toggle_block':
             user_id = request.form.get('user_id')
             current_status = int(request.form.get('current_status'))
@@ -362,16 +361,25 @@ def admin_dashboard():
             db.commit()
             return redirect(url_for('admin_dashboard'))
             
+        # Thao tác 2: Chỉnh sửa giao diện (Đã nâng cấp ghi đè chuẩn xác)
         elif action == 'update_ui':
             primary = request.form.get('primary_color')
             bg = request.form.get('bg_gradient')
             announcement = request.form.get('announcement')
             
-            db.execute("UPDATE settings SET value = ? WHERE key = 'primary_color'", (primary,))
-            db.execute("UPDATE settings SET value = ? WHERE key = 'bg_gradient'", (bg,))
-            db.execute("UPDATE settings SET value = ? WHERE key = 'announcement'", (announcement,))
+            db.execute("REPLACE INTO settings (key, value) VALUES ('primary_color', ?)", (primary,))
+            db.execute("REPLACE INTO settings (key, value) VALUES ('bg_gradient', ?)", (bg,))
+            db.execute("REPLACE INTO settings (key, value) VALUES ('announcement', ?)", (announcement,))
             db.commit()
             return "<script>alert('Giao diện hệ thống đã được cập nhật thay đổi hoàn toàn!'); window.location='/admin/dashboard';</script>"
+            
+        # Thao tác 3: Đổi mật khẩu của riêng tài khoản Admin
+        elif action == 'change_password':
+            new_password = request.form.get('new_password').strip()
+            if new_password:
+                db.execute("UPDATE users SET password = ? WHERE role = 'admin'", (new_password,))
+                db.commit()
+                return "<script>alert('Đổi mật khẩu Admin thành công! Hệ thống sẽ đăng xuất để bạn đăng nhập lại với mật khẩu mới nhé.'); window.location='/logout';</script>"
 
     users_list = db.execute("SELECT * FROM users WHERE role != 'admin'").fetchall()
     
@@ -380,20 +388,33 @@ def admin_dashboard():
     {% block content %}
     <h2 style="color: #ff4545;">👑 TỐI CAO PANEL - QUẢN TRỊ TRANG WEB</h2>
     
+    <!-- 1. KHUNG CHỈNH SỬA GIAO DIỆN WED -->
     <div class="card">
         <h3 style="color: #66fcf1; margin-top: 0;">🎨 Tùy Biến Giao Diện Vũ Trụ</h3>
         <form method="POST">
             <input type="hidden" name="action" value="update_ui">
-            <label>Màu chủ đạo Neon (Mã màu HEX hoặc tên màu):</label>
+            <label>Màu chủ đạo Neon (Mã màu HEX hoặc tên màu như pink, red...):</label>
             <input type="text" name="primary_color" value="{{ ui.primary_color }}" required>
             <label>Hiệu ứng màu nền (CSS Gradient / Background):</label>
             <input type="text" name="bg_gradient" value="{{ ui.bg_gradient }}" required>
             <label>Lời thông báo chạy ở Header:</label>
             <input type="text" name="announcement" value="{{ ui.announcement }}" required>
-            <button type="submit" class="btn">🎨 Áp Dụng Thay Đổi To Toàn Web</button>
+            <button type="submit" class="btn">🎨 Áp Dụng Thay Đổi Toàn Web</button>
         </form>
     </div>
 
+    <!-- 2. KHUNG ĐỔI MẬT KHẨU ADMIN -->
+    <div class="card">
+        <h3 style="color: #fffb00; margin-top: 0;">🔐 Đổi Mật Khẩu Admin Tối Cao</h3>
+        <form method="POST">
+            <input type="hidden" name="action" value="change_password">
+            <label>Nhập mật khẩu mới muốn thay đổi:</label>
+            <input type="text" name="new_password" placeholder="Nhập mật khẩu mới tại đây..." required>
+            <button type="submit" class="btn" style="background: linear-gradient(45deg, #ff9900, #ff5500);">🔐 Cập Nhật Mật Khẩu Mới</button>
+        </form>
+    </div>
+
+    <!-- 3. QUẢN LÝ THÀNH VIÊN & KHÓA NICK -->
     <div class="card">
         <h3 style="color: #66fcf1; margin-top: 0;">👥 Danh Sách Người Dùng Hệ Thống</h3>
         <table>
