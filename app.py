@@ -1,4 +1,4 @@
-```python
+
 # ==========================================================
 # AFTER 13 FRIDAY
 # app.py
@@ -255,7 +255,7 @@ def add_story():
 
             filename = save_cover(cover)
 
-```python
+
         conn = get_db()
 
         conn.execute(
@@ -556,7 +556,7 @@ def edit_story(story_id):
 
             filename = save_cover(cover)
 
-```python
+
         conn.execute(
 
             """
